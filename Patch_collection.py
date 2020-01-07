@@ -1,5 +1,6 @@
 from Patch import Patch
 from math import sqrt
+import numpy as np
 
 
 class Patch_collection():
@@ -15,7 +16,7 @@ class Patch_collection():
 		diff = 0
 		for hist1, hist2 in zip(hists1, hists2):
 			for val1, val2 in zip(hist1, hist2):
-				diff += (val1 - val2)** 2
+				diff += (val1 - val2) ** 2
 		return (sqrt(diff) / self.size)
 
 	def _pick_patches(self):
@@ -28,7 +29,6 @@ class Patch_collection():
 		for new_patch in patches:
 			is_different = True
 			for patch in self.patches:
-				print(self._diff_hists(new_patch, patch))
 				if self._diff_hists(new_patch, patch) < threshold:
 					is_different = False
 					break
@@ -42,4 +42,36 @@ class Patch_collection():
 			nb_iter -= 1
 		if fill:
 			self._pick_patches()
-		print(nb_iter)
+
+	def grid_patches(self, im=None):
+		if im is None:
+			im = self.im
+		if type(im) is list:
+			im = im[0]
+
+		self.height, self.length, _ = im.shape
+		self.offset_patches = int(self.size * 0.75)
+		self.patches = []
+		for x in range(0, self.height - self.size, self.offset_patches):
+			for y in range(0, self.length - self.size, self.offset_patches):
+				self.patches.append(Patch(im, x, y, self.size))
+		patches_shape = (int((self.height - self.size) / self.offset_patches),
+						 int((self.length - self.size) / self.offset_patches))
+		self.patches = np.reshape(self.patches, patches_shape)
+
+	def reconstruct_image(self):
+		image = np.full((self.size, self.size), [0, 0, 0, 0]) # [r, g, b, counter]
+		for patch in self.patches:
+			patch.patch_to_image()
+			for x in range(self.size):
+				for y in range(self.size):
+					pixel = image[patch.x + x, patch.y + y][:3]
+					counter = image[patch.x + x, patch.y + y][3]
+					counter += 1
+					pixel = int((pixel + patch.im[x, y]) / counter)
+					image[patch.x + x, patch.y + y][:3] = pixel
+					image[patch.x + x, patch.y + y][3] = counter
+		for x in range(height):
+			for y in range(length):
+				image[x, y] = image[x, y][:3]
+		return image
