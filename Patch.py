@@ -39,11 +39,11 @@ class Patch():
 
 
 	def show(self, im=None):
-		print(f"x: {self.x}\ty: {self.y}\timage: {self.image_index}")
+		# print(f"x: {self.x}\ty: {self.y}\timage: {self.image_index}")
 		reshaped_im = np.reshape(self.im, (self.size, self.size, 3))
 		if im is not None:
 			base_im = im[self.image_index][self.x:self.x + self.size, self.y:self.y + self.size,:] / 256
 			image = np.concatenate((reshaped_im, base_im), axis=1)
 		else:
 			image = reshaped_im
-		cv2.imshow(f'patch{self.x}_{self.y}_image{self.image_index}', image)
+		# cv2.imshow(f'patch{self.x}_{self.y}_image{self.image_index}', image)

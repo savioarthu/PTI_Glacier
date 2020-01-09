@@ -2,9 +2,10 @@ from Patch import Patch
 from math import sqrt
 import numpy as np
 
+from apprentissage import *
 
 class Patch_collection():
-	def __init__(self, im, nb=10, size_patch=20):
+	def __init__(self, im, nb=1000, size_patch=32):
 		self.size = size_patch
 		self.nb = nb
 		self.im = im
@@ -75,3 +76,21 @@ class Patch_collection():
 			for y in range(length):
 				image[x, y] = image[x, y][:3]
 		return image
+
+	def dictionnary(self,k,L):
+		D, Gamma = Apprentissage_OMP(self.patches,k,L)
+		D, Gamma = KSVD(D,self.patches,Gamma)
+		return D, Gamma
+
+
+path = './Photos/2007060208_cam01.jpg'
+path = './Photos_test/chat1.jpg'
+im = [cv2.imread(path)]
+p = Patch_collection(im)
+print(1)
+p.select_patches(threshold=0.001)
+
+
+k = 1000
+L = 2
+D, Gamma = p.dictionnary(k,L)
