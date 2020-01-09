@@ -125,11 +125,12 @@ def Apprentissage_OMP(X,k,L):
 
     # Initialisation
     D=X[:][0:k]
+    print(D[0][0])
     
     
     # Normalisation des colonnes de D avec les k premières colonnes de X
     for j in range(k):
-        print(D[:][j])
+        print(np.mean(D[:][j]))
         D[:][j]=(D[:][j]-np.mean(D[:][j]))/(np.linalg.norm(D[:][j])**2)
     # Gamma de taille k,l
     Gamma=np.zeros((k,len(X)))

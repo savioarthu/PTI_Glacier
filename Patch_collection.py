@@ -9,6 +9,7 @@ class Patch_collection():
 		self.size = size_patch
 		self.nb = nb
 		self.im = im
+		self.size_image = np.shape(self.im)
 		self.patches = []
 
 	def _diff_hists(self, patch1, patch2):
@@ -56,26 +57,30 @@ class Patch_collection():
 		for x in range(0, self.height - self.size, self.offset_patches):
 			for y in range(0, self.length - self.size, self.offset_patches):
 				self.patches.append(Patch(im, x, y, self.size))
-		patches_shape = (int((self.height - self.size) / self.offset_patches),
-						 int((self.length - self.size) / self.offset_patches))
-		self.patches = np.reshape(self.patches, patches_shape)
+			self.patches.append(Patch(im, x, self.length - self.size, self.size))
+
+		for y in range(0, self.length - self.size, self.offset_patches):
+			self.patches.append(Patch(im, self.height - self.size, y, self.size))
 
 	def reconstruct_image(self):
-		image = np.full((self.size, self.size), [0, 0, 0, 0]) # [r, g, b, counter]
+		image = np.full((self.size_image[1], self.size_image[2], 4), 0)  # [r, g, b, counter]
 		for patch in self.patches:
 			patch.patch_to_image()
 			for x in range(self.size):
 				for y in range(self.size):
-					pixel = image[patch.x + x, patch.y + y][:3]
-					counter = image[patch.x + x, patch.y + y][3]
-					counter += 1
-					pixel = int((pixel + patch.im[x, y]) / counter)
-					image[patch.x + x, patch.y + y][:3] = pixel
-					image[patch.x + x, patch.y + y][3] = counter
-		for x in range(height):
-			for y in range(length):
-				image[x, y] = image[x, y][:3]
-		return image
+					image[patch.x + x, patch.y + y][:3] += patch.im[x, y]
+					image[patch.x + x, patch.y + y][3] += 1
+
+		image_return = np.zeros((self.size_image[1], self.size_image[2], 3), dtype=np.int64)
+		for x in range(self.size_image[1]):
+			for y in range(self.size_image[2]):
+				# if image[x, y][3]:
+				image_return[x, y] = image[x, y][:3] / image[x, y][3] if image[x, y][3] else [0, 0, 0]
+				# for color in range(3):
+				# print(image_return[x, y])
+				# 	image_return[x, y][color] = image[x, y][color] / image[x, y][3]
+		return np.array(image_return, dtype=np.int64)
+
 
 	def dictionnary(self,k,L):
 		D, Gamma = Apprentissage_OMP(self.patches,k,L)
