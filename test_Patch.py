@@ -5,17 +5,21 @@ paths = ['./Photos/2007060208_cam01.jpg', './Photos/2007060608_cam01.jpg', './Ph
 paths_chat = ['./Photos_test/chat1.jpg', './Photos_test/chat2.jpg']
 
 
-images = [cv2.imread(path) for path in paths]
+images = [cv2.imread(path) for path in paths_chat]
 
 
-coll = Patch_collection(images, nb=10, size_patch=400)
-coll.select_patches(nb_iter=10, threshold=0.015, fill=False)
+coll = Patch_collection(images, nb=10, size_patch=60)
+coll.reconstruct_image()
 
-for patch in coll.patches[:10]:
-	patch.show(im=images)
 
-while True:
-	if cv2.waitKey(1) & 0xFF == ord('q'):
-		break
 
-cv2.destroyAllWindows()
+# coll.select_patches(nb_iter=10, threshold=0.015, fill=False)
+
+# for patch in coll.patches[:10]:
+# 	patch.show(im=images)
+
+# while True:
+# 	if cv2.waitKey(1) & 0xFF == ord('q'):
+# 		break
+
+# cv2.destroyAllWindows()
