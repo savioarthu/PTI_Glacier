@@ -4,6 +4,7 @@ import numpy as np
 
 from apprentissage import *
 
+
 class Patch_collection():
 	def __init__(self, im, nb=1000, size_patch=32):
 		self.size = size_patch
