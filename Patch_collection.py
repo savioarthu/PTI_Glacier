@@ -2,14 +2,15 @@ from Patch import Patch
 from math import sqrt
 import numpy as np
 
+from apprentissage import *
 
 class Patch_collection():
-    def __init__(self, im, nb=10, size_patch=20):
-        self.size = size_patch
-        self.nb = nb
-        self.im = im
-        self.size_image = np.shape(self.im)
-        self.patches = []
+	def __init__(self, im, nb=1000, size_patch=32):
+		self.size = size_patch
+		self.nb = nb
+		self.im = im
+		self.size_image = np.shape(self.im)
+		self.patches = []
 
     def _diff_hists(self, patch1, patch2):
         hists2 = patch2.hists
@@ -75,11 +76,15 @@ class Patch_collection():
                 for y in range(self.size):
                     image[patch.x + x, patch.y + y][:3] += patch.image[x, y]
                     image[patch.x + x, patch.y + y][3] += 1
-        print("sum done")
         image_return = np.zeros(
             (self.size_image[1], self.size_image[2], 3), dtype=np.float64)
         for x in range(self.size_image[1]):
             for y in range(self.size_image[2]):
                 image_return[x, y] = image[x, y][:3] / image[x, y][3]
-        print("divide done")
-        return image_return
+
+		return image_return
+
+	def dictionnary(self,k,L):
+		D, Gamma = Apprentissage_OMP(self.patches,k,L)
+		D, Gamma = KSVD(D,self.patches,Gamma)
+		return D, Gamma
