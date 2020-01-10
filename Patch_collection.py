@@ -57,30 +57,32 @@ class Patch_collection():
 		for x in range(0, self.height - self.size, self.offset_patches):
 			for y in range(0, self.length - self.size, self.offset_patches):
 				self.patches.append(Patch(im, x, y, self.size))
-			self.patches.append(Patch(im, x, self.length - self.size, self.size))
+			self.patches.append(
+				Patch(im, x, self.length - self.size, self.size))
 
 		for y in range(0, self.length - self.size, self.offset_patches):
-			self.patches.append(Patch(im, self.height - self.size, y, self.size))
+			self.patches.append(
+				Patch(im, self.height - self.size, y, self.size))
+		self.patches.append(Patch(im, self.height - self.size,
+								  self.length - self.size, self.size))
 
 	def reconstruct_image(self):
-		image = np.full((self.size_image[1], self.size_image[2], 4), 0)  # [r, g, b, counter]
+		# [r, g, b, counter]
+		image = np.full(
+			(self.size_image[1], self.size_image[2], 4), 0, dtype=np.float64)
 		for patch in self.patches:
-			patch.patch_to_image()
+			patch.vector_to_image()
 			for x in range(self.size):
 				for y in range(self.size):
-					image[patch.x + x, patch.y + y][:3] += patch.im[x, y]
+					image[patch.x + x, patch.y + y][:3] += patch.image[x, y]
 					image[patch.x + x, patch.y + y][3] += 1
-
-		image_return = np.zeros((self.size_image[1], self.size_image[2], 3), dtype=np.int64)
+		image_return = np.zeros(
+			(self.size_image[1], self.size_image[2], 3), dtype=np.float64)
 		for x in range(self.size_image[1]):
 			for y in range(self.size_image[2]):
-				# if image[x, y][3]:
-				image_return[x, y] = image[x, y][:3] / image[x, y][3] if image[x, y][3] else [0, 0, 0]
-				# for color in range(3):
-				# print(image_return[x, y])
-				# 	image_return[x, y][color] = image[x, y][color] / image[x, y][3]
-		return np.array(image_return, dtype=np.int64)
+				image_return[x, y] = image[x, y][:3] / image[x, y][3]
 
+		return image_return
 
 	def separate_patches(self):
 		R_fin = []
@@ -91,15 +93,15 @@ class Patch_collection():
 			G = []
 			B = []
 			# R 
-			for elem in elt.im[0][0]:
+			for elem in elt.vector[0][0]:
 				R.append([elem])
 			R_fin.append(np.array(R))
 			# G
-			for elem in elt.im[1][0]:
+			for elem in elt.vector[1][0]:
 				G.append([elem])
 			G_fin.append(np.array(G))
 			# B
-			for elem in elt.im[2][0]:
+			for elem in elt.vector[2][0]:
 				B.append([elem])
 			B_fin.append(np.array(B))
 
