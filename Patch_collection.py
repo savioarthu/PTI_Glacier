@@ -2,9 +2,6 @@ from Patch import Patch
 from math import sqrt
 import numpy as np
 
-from apprentissage import *
-
-
 class Patch_collection():
 	def __init__(self, im, nb=1000, size_patch=32):
 		self.size = size_patch
@@ -45,6 +42,10 @@ class Patch_collection():
 			nb_iter -= 1
 		if fill:
 			self._pick_patches()
+		self.sort_patches()
+
+	def sort_patches(self):
+		self.patches.sort(key=lambda patch: sum(patch.std), reverse=True)
 
 	def grid_patches(self, im=None):
 		if im is None:
@@ -93,7 +94,7 @@ class Patch_collection():
 			R = []
 			G = []
 			B = []
-			# R 
+			# R
 			for elem in elt.vector[0][0]:
 				R.append([elem])
 			R_fin.append(np.array(R))
@@ -107,21 +108,3 @@ class Patch_collection():
 			B_fin.append(np.array(B))
 
 		return R_fin, G_fin, B_fin
-
-#path = './Photos/2007060208_cam01.jpg'
-path = './Photos_test/chat1.jpg'
-im = [cv2.imread(path)]
-p = Patch_collection(im)
-p.select_patches(threshold=0.001)
-
-
-k = 10
-L = 1
-R, G, B = p.separate_patches()
-
-D_R, Gamma_R = Apprentissage_OMP(R, k, L) # R
-#D_G, Gamma_G = Apprentissage_OMP(G, k, L) # G
-#D_B, Gamma_B = Apprentissage_OMP(B, k, L) # B
-
-print(D_R)
-print(Gamma_R)
