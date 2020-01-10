@@ -82,20 +82,43 @@ class Patch_collection():
 		return np.array(image_return, dtype=np.int64)
 
 
-	def dictionnary(self,k,L):
-		D, Gamma = Apprentissage_OMP(self.patches,k,L)
-		D, Gamma = KSVD(D,self.patches,Gamma)
-		return D, Gamma
+	def separate_patches(self):
+		R_fin = []
+		G_fin = []
+		B_fin = []
+		for elt in self.patches:
+			R = []
+			G = []
+			B = []
+			# R 
+			for elem in elt.im[0][0]:
+				R.append([elem])
+			R_fin.append(np.array(R))
+			# G
+			for elem in elt.im[1][0]:
+				G.append([elem])
+			G_fin.append(np.array(G))
+			# B
+			for elem in elt.im[2][0]:
+				B.append([elem])
+			B_fin.append(np.array(B))
 
+		return R_fin, G_fin, B_fin
 
-path = './Photos/2007060208_cam01.jpg'
+#path = './Photos/2007060208_cam01.jpg'
 path = './Photos_test/chat1.jpg'
 im = [cv2.imread(path)]
 p = Patch_collection(im)
-print(1)
 p.select_patches(threshold=0.001)
 
 
-k = 1000
-L = 2
-D, Gamma = p.dictionnary(k,L)
+k = 10
+L = 1
+R, G, B = p.separate_patches()
+
+D_R, Gamma_R = Apprentissage_OMP(R, k, L) # R
+#D_G, Gamma_G = Apprentissage_OMP(G, k, L) # G
+#D_B, Gamma_B = Apprentissage_OMP(B, k, L) # B
+
+print(D_R)
+print(Gamma_R)

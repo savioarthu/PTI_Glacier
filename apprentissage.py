@@ -19,7 +19,7 @@ def OMP(X, D):
     # D le dictionnaire
     # X un vecteur
     
-    K = len(D) # K représente le nombre de colonnes de D : size(D,2)
+    K = len(D) # K représente le nombre de colonnes de D
     
     #Initialisation
     Epsilon = 10**(-6) # La précision souhaitée servant de valeur d'arrêt
@@ -41,14 +41,11 @@ def OMP(X, D):
 
         new = [abs(l) for l in C]
         mk = np.argmax(new)
-        val = max(new)
-
         
         # On met à jour l'ensemble des indices P
         P.append(mk)
+
         # Construction de la matrice phi des colonnes Dmk (le dictionnaire actif) 
-       
-        
     
         # On met à jour les coefficients de notre représentation parcimonieuse
         if iter == 0:
@@ -79,10 +76,10 @@ def KSVD(D,X,Gamma):
     # Etape 1 à K
     for i in range(K):
         # On commence par calculer l'erreur Err sur les l signaux sans tenir compte de la contribution de la ième colonne de D
-        Mat = np.zeros((len(X[0]),K))
+        Mat = np.zeros((len(X[0]),len(X)))
         for j in range(K):
             if j != i:
-                Mat = Mat + np.matmul(D[:][j].reshape((len(D[:][j]),1)),Gamma[j][:].reshape((1,len(Gamma[j][:]))))
+                Mat = Mat + np.matmul(D[:][j].reshape((len(D[:][j]),1)),Gamma[j,:].reshape((1,len(Gamma[j,:]))))
 
         Err = []
         for p in range(len(X)):
@@ -90,9 +87,9 @@ def KSVD(D,X,Gamma):
 
         # On ne garde que les coefficients non nuls de Gamma qu'on stocke dans wi le support, c'est à dire le vecteur des positions des coefficients non nuls.
         wi = []
-        for i in range(0, len(Gamma[0])):
-            if Gamma[i][:].any() != 0:
-                wi.append(i)
+        for t in range(0, len(Gamma[0])):
+            if Gamma[:,t].any() != 0:
+                wi.append(t)
 
         # Si ce support est vide, cela ne sert à rien de continuer et on peut passer à l'atome suivant.
         if len(wi) == 0:
@@ -101,19 +98,19 @@ def KSVD(D,X,Gamma):
         # Représentation de Oméga composée uniquement de 0 ou de 1 permettant d'exprimer l'erreur de reconstruction par la suite.
         OMEGA = np.zeros((len(X),len(wi)))
         for w in range(len(wi)):
-            OMEGA[wi[w]][w] = 1
+            OMEGA[wi[w],w] = 1
 
         # Erreur de reconstruction sans tenir compte des atomes correspondant aux coefficients non nuls de Gamma
         ERR = np.matmul(Err,OMEGA)
         
         # On réalise enfin une décomposition SVD de ERR
-        U, S, V = np.linalg.svd(ERR[0])
+        U, S, V = np.linalg.svd(ERR)
         
         # Mise à jour du dictionnaire D
         D[:][i] = U[:][0]
 
         # Mise à jour de Gamma
-        Gamma[i,wi] = S[0] * V[0][:].reshape((1,9))
+        Gamma[i,wi] = S[0][0] * V[0][:][0]
 
     return D, Gamma
 
@@ -125,12 +122,9 @@ def Apprentissage_OMP(X,k,L):
 
     # Initialisation
     D=X[:][0:k]
-    print(D[0][0])
-    
     
     # Normalisation des colonnes de D avec les k premières colonnes de X
     for j in range(k):
-        print(np.mean(D[:][j]))
         D[:][j]=(D[:][j]-np.mean(D[:][j]))/(np.linalg.norm(D[:][j])**2)
     # Gamma de taille k,l
     Gamma=np.zeros((k,len(X)))
@@ -138,14 +132,10 @@ def Apprentissage_OMP(X,k,L):
     # On répète L fois les étapes suivantes
     for j in range(L):
         for i in range(len(X)):
-            print("Step ", i)
             # On met à jour les coefficients de Gamma
-            Gamma[:][i]=OMP(X[:][i],D).reshape(9)
+            Gamma[:,i]=OMP(X[:][i],D).reshape(k)
 
-         # Mise à jour du dictionnaire de de Gamma
-        #D,Gamma = KSVD(D,X,Gamma)
-        print(Gamma)
-        print(D)
-        #print(j)
+        # Mise à jour du dictionnaire de de Gamma
+        D,Gamma = KSVD(D,X,Gamma)
     return D, Gamma
 
