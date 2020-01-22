@@ -1,137 +1,147 @@
+import sys
 import numpy as np
+from operator import mul, sub
+from skimage.util.shape import *
+from skimage.util import pad
+from functools import reduce
+from math import floor, sqrt, log10
+from scipy.sparse.linalg import svds
 
-# Algorithme de l'Orthogonal Matching Pursuit - OMP
+# FORMAT pour X (DATA) -> numpy.ndarray
+""" [[ -3.24265128 -50.24265128 -25.24265128 ... -25.24265128 -41.24265128
+  -45.24265128]
+ [-22.24265128 -40.24265128 -45.24265128 ... -61.24265128 -45.24265128
+  -41.24265128]
+ [-50.24265128 -25.24265128 -64.24265128 ... -41.24265128 -45.24265128
+  -61.24265128]
+ ...
+ [ 16.75734872  41.75734872  28.75734872 ...  27.75734872  41.75734872
+   96.75734872]
+ [ 28.75734872  41.75734872  16.75734872 ...  48.75734872  76.75734872
+   93.75734872]
+ [ 41.75734872  28.75734872  16.75734872 ...  41.75734872  96.75734872
+   94.75734872]] """
 
+sigma = 20                 # Noise standard dev.
+ksvd_iter = 10
 
-def OMP(X, D):
-	# D le dictionnaire
-	# X un vecteur
+#-------------------------------------------------------------------------------------------------------------------#
+#------------------------------------------ APPROXIMATION PURSUIT METHOD : -----------------------------------------#
+#------------------------------------- MULTI-CHANNEL ORTHOGONAL MATCHING PURSUIT -----------------------------------#
+#-------------------------------------------------------------------------------------------------------------------#
 
-	K = len(D)  # K représente le nombre de colonnes de D
-
-	# Initialisation
-	Epsilon = 10**(-6)  # La précision souhaitée servant de valeur d'arrêt
-	iter = 0  # Nombre d'itérations réalisées initialisé à 0
-	residuel = X  # init du résiduel 0 égal au signal
-	kmax = 10  # Le nombre d'itéaration maximum
-	alpha = np.zeros((K, 1))  # Alpha est initialisée comme un vecteur de zéros
-	phi = []  # Phi est vide à l'étape 0. Il représente le dictionnaire actif.
-	C = np.zeros((K, 1))  # Vecteur des valeurs max de chaque colonne de D
-	# P représente l'ensemble des indices des coefficients. Il est vide à l'étape 0.
-	P = []
-
-	# A l'étape k>=1, on boucle tant que notre nombre d'itérations n'ont pas dépassé un seuil prédéfini et que notre critère d'arrêt est supérieur à un seuil epsilon prédéfini
-	while ((kmax > iter) & (np.linalg.norm(residuel) > Epsilon)):
-		# Sélection de l'atome identique au MP : celui qui contribue le plus au résiduel R^(0)
-		for i in range(K):
-			if (np.linalg.norm(D[:][i]) != 0):
-				C[i] = np.linalg.norm(np.transpose(
-					D[:][i]) * residuel) / np.linalg.norm(D[:][i])
-		# Ainsi on retient toujours l'indice correspondant au maximum
-
-		new = [abs(l) for l in C]
-		mk = np.argmax(new)
-
-		# On met à jour l'ensemble des indices P
-		P.append(mk)
-
-		# Construction de la matrice phi des colonnes Dmk (le dictionnaire actif)
-
-		# On met à jour les coefficients de notre représentation parcimonieuse
-		if iter == 0:
-			phi.append(D[:][mk])
-			phi = phi[0]
-			phi_T = np.transpose(phi)
-			alpha[P] = np.matmul(
-				np.matmul(np.linalg.pinv(np.matmul(phi_T, phi)), phi_T), X)
-			#print('alpha =', alpha)
-		else:
-			phi = np.append(phi, D[:][mk], axis=1)
-			phi_T = np.transpose(phi)
-			alpha[P[iter]] = np.matmul(
-				np.matmul(np.linalg.pinv(np.matmul(phi_T, phi)), phi_T), X)[iter]
-			#print('alpha =', alpha)
-		# On met à jour notre résiduel
-		residuel = X - np.matmul(phi, alpha[P])
-		# On met à jour notre nombre d'itérations et on recommencer la boucle
-		iter = iter + 1
-	return alpha
-
-# Algorithme KSVD
+# data = X
+# D = dico
+def omp(D, data, sparsity=1):
+    max_error = sqrt(((sigma**1.15)**2)*data.shape[0])
+    max_coeff = sparsity
 
 
-def KSVD(D, X, Gamma):
-	# D le dictionnaire
-	# X le vecteur du signal d'origine
-	# Gamma la matrice telle que X=D*Gamma
+    sparse_coeff = np.zeros((D.shape[1],data.shape[1]))
+    tot_res = 0
+    for i in range(data.shape[1]):
+        count = floor((i+1)/float(data.shape[1])*100)
+        sys.stdout.write("\r- Sparse coding : Channel : %d%%" % count)
+        sys.stdout.flush()
+        
+        x = data[:,i]
+        res = x
+        atoms_list = []
+        res_norm = np.linalg.norm(res)
+        temp_sparse = np.zeros(D.shape[1])
 
-	K = len(D)  # K le nombre d'atomes souhaités dans le dictionnaire
+        while len(atoms_list) < max_coeff: #and res_norm > max_error:
+            proj = D.T.dot(res)
+            i_0 = np.argmax(np.abs(proj))
+            atoms_list.append(i_0)
 
-	# Etape 1 à K
-	for i in range(K):
-		# On commence par calculer l'erreur Err sur les l signaux sans tenir compte de la contribution de la ième colonne de D
-		Mat = np.zeros((len(X[0]), len(X)))
-		for j in range(K):
-			if j != i:
-				Mat = Mat + np.matmul(D[:][j].reshape((len(D[:][j]), 1)),
-									  Gamma[j, :].reshape((1, len(Gamma[j, :]))))
+            temp_sparse = np.linalg.pinv(D[:,atoms_list]).dot(x)
+            res = x - D[:,atoms_list].dot(temp_sparse)
+            res_norm = np.linalg.norm(res)
 
-		Err = []
-		for p in range(len(X)):
-			Err.append(X[p] - Mat[p])
+        tot_res += res_norm
+        if len(atoms_list) > 0:
+            sparse_coeff[atoms_list, i] = temp_sparse
+    print('\n',tot_res)
+    print ('\r- Sparse coding complete.\n')
 
-		# On ne garde que les coefficients non nuls de Gamma qu'on stocke dans wi le support, c'est à dire le vecteur des positions des coefficients non nuls.
-		wi = []
-		for t in range(0, len(Gamma[0])):
-			if Gamma[:, t].any() != 0:
-				wi.append(t)
+    return sparse_coeff
 
-		# Si ce support est vide, cela ne sert à rien de continuer et on peut passer à l'atome suivant.
-		if len(wi) == 0:
-			break
-
-		# Représentation de Oméga composée uniquement de 0 ou de 1 permettant d'exprimer l'erreur de reconstruction par la suite.
-		OMEGA = np.zeros((len(X), len(wi)))
-		for w in range(len(wi)):
-			OMEGA[wi[w], w] = 1
-
-		# Erreur de reconstruction sans tenir compte des atomes correspondant aux coefficients non nuls de Gamma
-		ERR = np.matmul(Err, OMEGA)
-
-		# On réalise enfin une décomposition SVD de ERR
-		U, S, V = np.linalg.svd(ERR)
-
-		# Mise à jour du dictionnaire D
-		D[:][i] = U[:][0]
-
-		# Mise à jour de Gamma
-		Gamma[i, wi] = S[0][0] * V[0][:][0]
-
-	return D, Gamma
-
-# Algorithme d'apprentissage d'un dictionnaire par KSVD pour OMP
+#-------------------------------------------------------------------------------------------------------------------#
+#------------------------------------------- DICTIONARY METHODS -------------------------------------------#
+#-------------------------------------------------------------------------------------------------------------------#
 
 
-def Apprentissage_OMP(X, k, L):
-	# X le vecteur du signal d'origine
-	# k le nombre d'atomes souhaités dans le dictionnaire
-	# L le nombre de mises à jour
+def dict_initiate(train_noisy_patches, dict_size):
+    # dictionary intialization
+    
+    indexes = np.random.random_integers(0, train_noisy_patches.shape[1]-1, dict_size)   # indexes of patches for dictionary elements
+    dict_init = np.array(train_noisy_patches[:, indexes])            # each column is a new atom
+    print(dict_init)
+    print(len(dict_init))
+    print(len(dict_init[0]))
 
-	# Initialisation
-	D = X[:][0:k]
+    # dictionary normalization
+    dict_init = dict_init - dict_init.mean()
+    print(type(np.sqrt(np.sum(np.multiply(dict_init,dict_init),axis=0))))
+    temp = np.diag(pow(np.sqrt(np.sum(np.multiply(dict_init,dict_init),axis=0)), -1))
+    dict_init = dict_init.dot(temp)
+    basis_sign = np.sign(dict_init[0,:])
+    dict_init = np.multiply(dict_init, basis_sign)
 
-	# Normalisation des colonnes de D avec les k premières colonnes de X
-	for j in range(k):
-		D[:][j] = (D[:][j]-np.mean(D[:][j]))/(np.linalg.norm(D[:][j])**2)
-	# Gamma de taille k,l
-	Gamma = np.zeros((k, len(X)))
+    print( 'Shape of dictionary : ' , str(dict_init.shape) + '\n')
+    # cv2.namedWindow('dict', cv2.WINDOW_NORMAL)
+    # cv2.imshow('dict',dict_init.astype('double'))
 
-	# On répète L fois les étapes suivantes
-	for j in range(L):
-		for i in range(len(X)):
-			# On met à jour les coefficients de Gamma
-			Gamma[:, i] = OMP(X[:][i], D).reshape(k)
+    return dict_init
 
-		# Mise à jour du dictionnaire de de Gamma
-		D, Gamma = KSVD(D, X, Gamma)
-	return D, Gamma
+
+def dict_update(D, data, matrix_sparse, atom_id):
+    indices = np.where(matrix_sparse[atom_id, :] != 0)[0]
+    D_temp = D
+    sparse_temp = matrix_sparse[:,indices]
+
+    if len(indices) > 1:
+        sparse_temp[atom_id,:] = 0
+
+        matrix_e_k = data[:, indices] - D_temp.dot(sparse_temp)
+        u, s, v = svds(np.atleast_2d(matrix_e_k), 1)
+        D_temp[:, atom_id] = u[:, 0]
+        matrix_sparse[atom_id, indices] = s.dot(v)
+
+    return D_temp, matrix_sparse
+
+#-------------------------------------------------------------------------------------------------------------------#
+#------------------------------------------------- K-SVD ALGORITHM -------------------------------------------------#
+#-------------------------------------------------------------------------------------------------------------------#
+
+def k_svd(train_noisy_patches, dict_size, sparsity):
+
+    dict_init = dict_initiate(train_noisy_patches, dict_size)
+
+    D = dict_init
+
+    matrix_sparse = np.zeros((D.T.dot(train_noisy_patches)).shape)         # initializing spare matrix
+    num_iter = ksvd_iter
+    print ('\nK-SVD, with residual criterion.')
+    print ('-------------------------------')
+
+    for k in range(num_iter):
+        print ("Stage " , str(k+1) , "/" , str(num_iter) , "...")
+
+        matrix_sparse = omp(D, train_noisy_patches, sparsity)
+
+        count = 1
+
+        dict_elem_order = np.random.permutation(D.shape[1])
+
+        for j in dict_elem_order:
+            r = floor(count/float(D.shape[1])*100)
+            sys.stdout.write("\r- Dictionary updating : %d%%" % r)
+            sys.stdout.flush()
+            
+            D, matrix_sparse = dict_update(D, train_noisy_patches, matrix_sparse, j)
+            count += 1
+        print ('\r- Dictionary updating complete.\n')
+
+    return D, matrix_sparse

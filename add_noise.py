@@ -5,6 +5,7 @@ paths = ['./Photos_test/chat1.jpg']
 output_paths = [f"{path.split('.jpg')[0]}_noised.jpg" for path in paths]
 
 def noise(images, std=1):
+	noised_images = []
 	for image in images:
 		noise = np.random.normal(0, std, size=image.shape)
 		noised_images.append(image + noise)

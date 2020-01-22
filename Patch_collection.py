@@ -96,15 +96,15 @@ class Patch_collection():
 			B = []
 			# R
 			for elem in elt.vector[0][0]:
-				R.append([elem])
-			R_fin.append(np.array(R))
+				R.append(elem)
+			R_fin.append(R)
 			# G
 			for elem in elt.vector[1][0]:
-				G.append([elem])
-			G_fin.append(np.array(G))
+				G.append(elem)
+			G_fin.append(G)
 			# B
 			for elem in elt.vector[2][0]:
-				B.append([elem])
-			B_fin.append(np.array(B))
+				B.append(elem)
+			B_fin.append(B)
 
-		return R_fin, G_fin, B_fin
+		return np.array(R_fin), np.array(G_fin), np.array(B_fin)
