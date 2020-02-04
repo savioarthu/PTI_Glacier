@@ -7,27 +7,13 @@ from functools import reduce
 from math import floor, sqrt, log10
 from scipy.sparse.linalg import svds
 
-# FORMAT pour X (DATA) -> numpy.ndarray
-""" [[ -3.24265128 -50.24265128 -25.24265128 ... -25.24265128 -41.24265128
-  -45.24265128]
- [-22.24265128 -40.24265128 -45.24265128 ... -61.24265128 -45.24265128
-  -41.24265128]
- [-50.24265128 -25.24265128 -64.24265128 ... -41.24265128 -45.24265128
-  -61.24265128]
- ...
- [ 16.75734872  41.75734872  28.75734872 ...  27.75734872  41.75734872
-   96.75734872]
- [ 28.75734872  41.75734872  16.75734872 ...  48.75734872  76.75734872
-   93.75734872]
- [ 41.75734872  28.75734872  16.75734872 ...  41.75734872  96.75734872
-   94.75734872]] """
 
 sigma = 20                 # Noise standard dev.
 ksvd_iter = 10
 
 #-------------------------------------------------------------------------------------------------------------------#
 #------------------------------------------ APPROXIMATION PURSUIT METHOD : -----------------------------------------#
-#------------------------------------- MULTI-CHANNEL ORTHOGONAL MATCHING PURSUIT -----------------------------------#
+#------------------------------------------- ORTHOGONAL MATCHING PURSUIT -------------------------------------------#
 #-------------------------------------------------------------------------------------------------------------------#
 
 # data = X
@@ -72,18 +58,14 @@ def omp(D, data, sparsity=1):
 #-------------------------------------------------------------------------------------------------------------------#
 
 
-def dict_initiate(train_noisy_patches, dict_size):
+def dict_initiate(train_patches, dict_size):
     # dictionary intialization
     
-    indexes = np.random.random_integers(0, train_noisy_patches.shape[1]-1, dict_size)   # indexes of patches for dictionary elements
-    dict_init = np.array(train_noisy_patches[:, indexes])            # each column is a new atom
-    print(dict_init)
-    print(len(dict_init))
-    print(len(dict_init[0]))
+    indexes = np.random.random_integers(0, train_patches.shape[1]-1, dict_size)   # indexes of patches for dictionary elements
+    dict_init = np.array(train_patches[:, indexes])            # each column is a new atom
 
     # dictionary normalization
     dict_init = dict_init - dict_init.mean()
-    print(type(np.sqrt(np.sum(np.multiply(dict_init,dict_init),axis=0))))
     temp = np.diag(pow(np.sqrt(np.sum(np.multiply(dict_init,dict_init),axis=0)), -1))
     dict_init = dict_init.dot(temp)
     basis_sign = np.sign(dict_init[0,:])
@@ -115,13 +97,13 @@ def dict_update(D, data, matrix_sparse, atom_id):
 #------------------------------------------------- K-SVD ALGORITHM -------------------------------------------------#
 #-------------------------------------------------------------------------------------------------------------------#
 
-def k_svd(train_noisy_patches, dict_size, sparsity):
+def k_svd(train_patches, dict_size, sparsity):
 
-    dict_init = dict_initiate(train_noisy_patches, dict_size)
+    dict_init = dict_initiate(train_patches, dict_size)
 
     D = dict_init
 
-    matrix_sparse = np.zeros((D.T.dot(train_noisy_patches)).shape)         # initializing spare matrix
+    matrix_sparse = np.zeros((D.T.dot(train_patches)).shape)         # initializing spare matrix
     num_iter = ksvd_iter
     print ('\nK-SVD, with residual criterion.')
     print ('-------------------------------')
@@ -129,7 +111,7 @@ def k_svd(train_noisy_patches, dict_size, sparsity):
     for k in range(num_iter):
         print ("Stage " , str(k+1) , "/" , str(num_iter) , "...")
 
-        matrix_sparse = omp(D, train_noisy_patches, sparsity)
+        matrix_sparse = omp(D, train_patches, sparsity)
 
         count = 1
 
@@ -140,7 +122,7 @@ def k_svd(train_noisy_patches, dict_size, sparsity):
             sys.stdout.write("\r- Dictionary updating : %d%%" % r)
             sys.stdout.flush()
             
-            D, matrix_sparse = dict_update(D, train_noisy_patches, matrix_sparse, j)
+            D, matrix_sparse = dict_update(D, train_patches, matrix_sparse, j)
             count += 1
         print ('\r- Dictionary updating complete.\n')
 
