@@ -94,3 +94,13 @@ class Patch_collection():
     def decode(self, dicts):
         for patch in self.patches:
             patch.decode(dicts)
+
+    def split_channels(self):
+        R = []
+        G = []
+        B = []
+        for patch in self.patches:
+            R.append(patch.vector[0])
+            G.append(patch.vector[1])
+            B.append(patch.vector[2])
+        return R, G, B
