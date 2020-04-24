@@ -1,19 +1,17 @@
 import numpy as np
 import cv2
 
-from apprentissage import k_svd, omp
+from apprentissage import k_svd, new_k_svd, single_channel_omp
 from Patch_collection import Patch_collection
 
 colors = [0, 1, 2]
 
 
 class KSVD():
-    def __init__(self, size_dict, sparcity,
+    def __init__(self,
                  collection_aprentissage=None, collection_aprentissage_im=None, collection_aprentissage_nb=1000, collection_size=32,
                  aprentissage_nb_iter=10, aprentissage_threshold=0.1, aprentissage_fill=False,
                  collection_debruitage=None, collection_debruitage_im=None, collection_debruitage_nb=1000):
-        self.size_dict = size_dict
-        self.sparcity = sparcity
 
         if collection_aprentissage is not None:
             self.collection_aprentissage = collection_aprentissage
@@ -44,8 +42,7 @@ class KSVD():
             self.aprentissage_nb_iter, fill=self.aprentissage_fill, threshold=self.aprentissage_threshold)
         patches = self.collection_aprentissage.patches
 
-        self.dicts = [k_svd(patches[color], self.size_dict,
-                            self.sparcity) for color in colors]
+        self.dicts = [new_k_svd(patches[color], single_channel_omp) for color in colors]
 
         self.dicts.sort(key=lambda patch: sum(np.std(patch, axis=1)))
 
