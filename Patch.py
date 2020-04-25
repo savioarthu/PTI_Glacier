@@ -1,6 +1,7 @@
 from random import randint
 import numpy as np
 import cv2
+import matplotlib.pyplot as plt
 
 from apprentissage import omp
 
@@ -46,11 +47,28 @@ class Patch():
                  for pixR, pixG, pixB in zip(self.vector[0][0], self.vector[1][0], self.vector[2][0])]
         self.image = np.reshape(image, (self.size, self.size, 3))
 
-    def show(self, im=None):
+    def show(self, method='plt'):
         print(f"x: {self.x}\ty: {self.y}\timage: {self.image_index}")
         self.vector_to_image()
-        cv2.imshow(
-            f'patch{self.x}_{self.y}_image{self.image_index}', self.image)
+        if method == 'cv2':
+            cv2.imshow(
+                f'patch{self.x}_{self.y}_image{self.image_index}', self.image)
+        else:
+            plt.title(f'patch{self.x}_{self.y}_image{self.image_index}')
+            plt.imshow(self.image)
+            plt.show()
+
+    def show_hists(self):
+        plt.figure(figsize=(20, 5))
+
+        plt.subplot(1, 3, 1)
+        plt.bar(np.arange(39), self.hists[0], color='red')
+        plt.subplot(1, 3, 2)
+        plt.bar(np.arange(39), self.hists[1], color='blue')
+        plt.subplot(1, 3, 3)
+        plt.bar(np.arange(39), self.hists[2], color='green')
+
+        plt.show()
 
     def encode(self, dicts, sparsity=1):
         self.vector = [omp(dicts[color], self.vector[color], sparsity)

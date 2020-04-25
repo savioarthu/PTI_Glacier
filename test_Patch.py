@@ -9,12 +9,16 @@ paths = ['./Photos/2007060208_cam01.jpg', './Photos/2007060608_cam01.jpg',
 paths_chat = ['./Photos_test/chat1.jpg', './Photos_test/chat2.jpg']
 
 
-images = [cv2.imread(path) for path in paths]
-
+images = [cv2.imread(path) for path in paths_chat]
 
 coll = Patch_collection(images, nb=1024, size_patch=32)
 
-# coll.select_patches(nb_iter=3, threshold=0.01, fill=False)
+""" coll = Patch_collection(images, nb=3, size_patch=32)
+
+coll.select_patches(nb_iter=3, threshold=0.01, fill=False)
+
+coll.patches[0].show() """
+
 # print(0)
 # coll.grid_patches()
 # print(1)
